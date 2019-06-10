@@ -1,0 +1,52 @@
+version: '2.4'
+
+services:
+  nginx:
+    container_name: nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    volumes_from:
+      - frontend
+    ports:
+      - 80:80
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+        
+  api:
+    container_name: api
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: prod
+    healthcheck:
+      test: curl -f http://127.0.0.1:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod
+    volumes:
+        - /app
+    healthcheck:
+      test: none
+
+  postgres:
+    container_name: postgres
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: pg_isready -U postgres -h 127.0.0.1
+    volumes:
+      - ./postgres/db-data:/var/lib/postgresql/data
